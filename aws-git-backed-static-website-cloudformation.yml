@@ -97,6 +97,23 @@ Parameters:
     Description: "S3 key containing ZIP of AWS Lambda function (sync to S3)"
     Default: "lambda/aws-lambda-git-backed-static-website.zip"
 
+  GitHubRepositoryOwner:
+    Description: "The owner of the repository used for the static site."
+    Type: String
+
+  GitHubRepository:
+    Description: "The name of the repository used for the static site."
+    Type: String
+
+  GitHubBranch:
+    Description: "The branch which will auto deploy the static site (default is master)"
+    Type: String
+    Default: master
+
+  GitHubRepositoryToken:
+    Description: "The OAuth token which gives access to your repository."
+    Type: String
+
   PreExistingGitRepository:
     Description: "Optional Git repository name for pre-existing CodeCommit repository. Leave empty to have CodeCommit Repository created and managed by this stack."
     Type: String
@@ -128,7 +145,6 @@ Parameters:
     Default: ""
 
 Conditions:
-  NeedsNewGitRepository: !Equals [!Ref PreExistingGitRepository, ""]
   NeedsNewHostedZone: !Equals [!Ref PreExistingHostedZoneDomain, ""]
   NeedsNewSiteBucket: !Equals [!Ref PreExistingSiteBucket, ""]
   NeedsNewRedirectBucket: !Equals [!Ref PreExistingRedirectBucket, ""]
@@ -313,20 +329,6 @@ Resources:
         - Endpoint: !Ref NotificationEmail
           Protocol: email
 
-  # Git repository: example.com
-  GitRepository:
-    Condition: NeedsNewGitRepository
-    Type: "AWS::CodeCommit::Repository"
-    Properties:
-      RepositoryDescription: !Sub "Git repository for ${DomainName}"
-      RepositoryName: !Ref DomainName
-      Triggers:
-        - Name: !Sub "Activity in ${DomainName} Git repository"
-          DestinationArn: !Ref NotificationTopic
-          Events:
-            - all
-    DeletionPolicy: Retain
-
   # IAM info for AWS Lambda functions
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -442,12 +444,14 @@ Resources:
             - Name: SourceAction
               ActionTypeId:
                 Category: Source
-                Owner: AWS
-                Provider: CodeCommit
+                Owner: ThirdParty
+                Provider: GitHub
                 Version: 1
               Configuration:
-                RepositoryName: !If [NeedsNewGitRepository, !Ref DomainName, !Ref PreExistingGitRepository]
-                BranchName: master
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubToken
               OutputArtifacts:
                 - Name: SiteSource
               RunOrder: 1
@@ -549,13 +553,7 @@ Outputs:
     Value: !Ref CodePipeline
   GitRepositoryName:
     Description: Git repository name
-    Value: !If [NeedsNewGitRepository, !Ref DomainName, !Ref PreExistingGitRepository]
-  GitCloneUrlHttp:
-    Description: Git https clone endpoint
-    Value: !If [NeedsNewGitRepository, !GetAtt GitRepository.CloneUrlHttp, "N/A"]
-  GitCloneUrlSsh:
-    Description: Git ssh clone endpoint
-    Value: !If [NeedsNewGitRepository, !GetAtt GitRepository.CloneUrlSsh, "N/A"]
+    Value: !Ref GitHubRepo
 
 Metadata:
   AWS::CloudFormation::Interface:
