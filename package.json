@@ -1,0 +1,14 @@
+{
+  "name": "aws-git-backed-static-website",
+  "version": "1.0.0",
+  "author": "Adam Trimble",
+  "description": "Cloudformation stack that spins up infrastructure for hosting static sites",
+  "main": "index.js",
+  "scripts": {
+    "create-stack": "export $(cat config.env | xargs) && ./bin/create.sh",
+    "delete-stack": "export $(cat config.env | xargs) && ./bin/delete.sh",
+    "update-stack": "export $(cat config.env | xargs) && ./bin/update.sh"
+  },
+  "keywords": [],
+  "license": "MIT"
+}
