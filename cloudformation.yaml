@@ -55,48 +55,6 @@ Parameters:
       - PriceClass_All
     Type: String
 
-  GeneratorLambdaFunctionS3Bucket:
-    Type: String
-    Description: "S3 bucket containing ZIP of AWS Lambda function (static site generator)"
-    Default: "run.alestic.com"
-
-  GeneratorLambdaFunctionS3Key:
-    Type: String
-    Description: "S3 key containing ZIP of AWS Lambda function (static site generator)"
-    Default: "lambda/aws-lambda-site-generator-identity.zip"
-
-  GeneratorLambdaFunctionRuntime:
-    Type: String
-    Description: "Runtime language for AWS Lambda function (static site generator)"
-    Default: "python2.7"
-    AllowedValues:
-      - "python2.7"
-      - "nodejs"
-      - "nodejs4.3"
-      - "java8"
-
-  GeneratorLambdaFunctionHandler:
-    Type: String
-    Description: "Function Handler for AWS Lambda function (static site generator)"
-    Default: "index.handler"
-
-  GeneratorLambdaFunctionUserParameters:
-    Type: String
-    Description: "User parameters for AWS Lambda function (static site generator)"
-    Default: "unused"
-    MinLength: 1
-    MaxLength: 1000
-
-  SyncLambdaFunctionS3Bucket:
-    Type: String
-    Description: "S3 bucket containing ZIP of AWS Lambda function (sync to S3)"
-    Default: "run.alestic.com"
-
-  SyncLambdaFunctionS3Key:
-    Type: String
-    Description: "S3 key containing ZIP of AWS Lambda function (sync to S3)"
-    Default: "lambda/aws-lambda-git-backed-static-website.zip"
-
   GitHubOwner:
     Description: "The owner of the repository used for the static site."
     Type: String
@@ -113,6 +71,21 @@ Parameters:
   GitHubToken:
     Description: "The OAuth token which gives access to your repository."
     Type: String
+
+  LambdaBucket:
+    Type: String
+    Description: "S3 bucket containing the ZIPs of AWS Lambda functions"
+    Default: "lambdas.codepipeline"
+
+  GeneratorLambdaFunctionS3Key:
+    Type: String
+    Description: "S3 key containing ZIP of AWS Lambda function (static site generator)"
+    Default: "GenerateGatsbyStaticSite-latest.zip"
+
+  SyncLambdaFunctionS3Key:
+    Type: String
+    Description: "S3 key containing ZIP of AWS Lambda function (sync to S3)"
+    Default: "SyncStaticSiteToS3-latest.zip"
 
   PreExistingHostedZoneDomain:
     Description: "Optional domain name for pre-existing Route 53 hosted zone. Leave empty to have hosted zone created and managed by this stack."
@@ -154,7 +127,7 @@ Resources:
     Properties:
       BucketName: !Sub "logs.${DomainName}"
       AccessControl: LogDeliveryWrite
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
 
   # Bucket for site content: example.com
   SiteBucket:
@@ -170,7 +143,7 @@ Resources:
       LoggingConfiguration:
         DestinationBucketName: !If [NeedsNewLogsBucket, !Ref LogsBucket, !Ref PreExistingLogsBucket]
         LogFilePrefix: !Sub "logs/s3/${DomainName}/"
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
 
   # Bucket to redirect to example.com: www.example.com
   RedirectBucket:
@@ -197,7 +170,7 @@ Resources:
       BucketName: !Sub "codepipeline.${DomainName}"
       VersioningConfiguration:
         Status: Enabled
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
 
   # Certificate for HTTPS accesss through CloudFront
   Certificate:
@@ -293,7 +266,7 @@ Resources:
       HostedZoneConfig:
         Comment: !Sub "Created by CloudFormation stack: ${AWS::StackName}"
       Name: !Ref DomainName
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
   Route53RecordSetGroup:
     Type: "AWS::Route53::RecordSetGroup"
     Properties:
@@ -380,10 +353,10 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       MemorySize: 1536
       Timeout: 300
-      Runtime: !Ref GeneratorLambdaFunctionRuntime
-      Handler: !Ref GeneratorLambdaFunctionHandler
+      Runtime: nodejs6.10
+      Handler: index.handler
       Code:
-        S3Bucket: !Ref GeneratorLambdaFunctionS3Bucket
+        S3Bucket: !Ref LambdaBucket
         S3Key: !Ref GeneratorLambdaFunctionS3Key
 
   SyncLambdaFunction:
@@ -393,10 +366,10 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       MemorySize: 1536
       Timeout: 300
-      Runtime: python2.7
+      Runtime: nodejs6.10
       Handler: index.handler
       Code:
-        S3Bucket: !Ref SyncLambdaFunctionS3Bucket
+        S3Bucket: !Ref LambdaBucket
         S3Key: !Ref SyncLambdaFunctionS3Key
 
   # IAM info for CodePipeline
@@ -462,7 +435,6 @@ Resources:
                 Version: 1
               Configuration:
                 FunctionName: !Ref GeneratorLambdaFunction
-                UserParameters: !Ref GeneratorLambdaFunctionUserParameters
               OutputArtifacts:
                 - Name: SiteContent
               RunOrder: 1
@@ -478,7 +450,6 @@ Resources:
                 Version: 1
               Configuration:
                 FunctionName: !Ref SyncLambdaFunction
-                UserParameters: !If [NeedsNewSiteBucket, !Ref SiteBucket, !Ref PreExistingSiteBucket]
               RunOrder: 1
 
 Mappings:
@@ -564,15 +535,11 @@ Metadata:
       - Label:
           default: AWS Lambda Function (static site generator)
         Parameters:
-          - GeneratorLambdaFunctionS3Bucket
+          - LambdaBucket
           - GeneratorLambdaFunctionS3Key
-          - GeneratorLambdaFunctionRuntime
-          - GeneratorLambdaFunctionHandler
-          - GeneratorLambdaFunctionUserParameters
       - Label:
           default: AWS Lambda Function (Sync to S3)
         Parameters:
-          - SyncLambdaFunctionS3Bucket
           - SyncLambdaFunctionS3Key
       - Label:
           default: CloudFront CDN

@@ -2,8 +2,8 @@
 
 echo "Building and uploading lambda functions..."
 
-./GenerateGatsbyStaticSite/build.sh
-./SyncStaticSiteToS3/build.sh
+SYNC_STATIC_SITE_TO_S3_VERSION=$(./SyncStaticSiteToS3/build.sh)
+GENERATE_GATSBY_STATIC_SITE_VERSION=$(./GenerateGatsbyStaticSite/build.sh)
 
 echo "Success!"
 echo ""
@@ -15,7 +15,15 @@ aws cloudformation create-stack \
   --template-body=file://cloudformation.yaml \
   --capabilities CAPABILITY_IAM \
   --parameters \
-    ParameterKey=S3BucketName,ParameterValue=$S3_BUCKET_NAME \
+    ParameterKey=DomainName,ParameterValue=$DOMAIN_NAME \
+    ParameterKey=NotificationEmail,ParameterValue=$NOTIFICATION_EMAIL \
+    ParameterKey=GitHubOwner,ParameterValue=$GITHUB_OWNER \
+    ParameterKey=GitHubRepo,ParameterValue=$GITHUB_REPO \
+    ParameterKey=GitHubBranch,ParameterValue=$GITHUB_BRANCH \
+    ParameterKey=GitHubToken,ParameterValue=$GITHUB_TOKEN \
+    ParameterKey=LambdaBucket,ParameterValue=lambdas.$DOMAIN_NAME \
+    ParameterKey=GeneratorLambdaFunctionS3Key,ParameterValue=GenerateGatsbyStaticSite-${GENERATE_GATSBY_STATIC_SITE_VERSION-latest}.zip \
+    ParameterKey=SyncLambdaFunctionS3Key,ParameterValue=SyncStaticSiteToS3-${SYNC_STATIC_SITE_TO_S3_VERSION-latest}.zip
 
 echo "Creating the $STACK_NAME stack..."
 
