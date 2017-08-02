@@ -77,11 +77,6 @@ Parameters:
     Description: "S3 bucket containing the ZIPs of AWS Lambda functions"
     Default: "lambdas.codepipeline"
 
-  GeneratorLambdaFunctionS3Key:
-    Type: String
-    Description: "S3 key containing ZIP of AWS Lambda function (static site generator)"
-    Default: "GenerateGatsbyStaticSite-latest.zip"
-
   SyncLambdaFunctionS3Key:
     Type: String
     Description: "S3 key containing ZIP of AWS Lambda function (sync to S3)"
@@ -345,19 +340,45 @@ Resources:
                   - !Join ["", ["arn:aws:s3:::", !If [NeedsNewSiteBucket, !Ref SiteBucket, !Ref PreExistingSiteBucket], "/*"]]
                   - !Join ["", ["arn:aws:s3:::", !If [NeedsNewCodePipelineBucket, !Ref CodePipelineBucket, !Ref PreExistingCodePipelineBucket], "/*"]]
 
-  GeneratorLambdaFunction:
-    Type: "AWS::Lambda::Function"
+  GatsbyCodeBuildRole:
+    Type: AWS::IAM::Role
     Properties:
-      Description: !Sub "Static site generator for ${DomainName}"
-      #TBD: Some static site generators might need more permissions
-      Role: !GetAtt LambdaExecutionRole.Arn
-      MemorySize: 1536
-      Timeout: 300
-      Runtime: nodejs6.10
-      Handler: index.handler
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: !Ref GeneratorLambdaFunctionS3Key
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  GatsbyCodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/eb-nodejs-4.4.6-amazonlinux-64:2.1.3
+        Type: LINUX_CONTAINER
+      Name: !Sub ${AWS::StackName}GatsbyCodeBuild
+      ServiceRole: !Ref GatsbyCodeBuildRole
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          version: 0.1
+          phases:
+            install:
+              commands:
+                - npm install -g gatsby
+                - npm install
+            build:
+              commands:
+                - npm run build
+          artifacts:
+            files:
+              - public/**/*
 
   SyncLambdaFunction:
     Type: "AWS::Lambda::Function"
@@ -407,7 +428,7 @@ Resources:
       RestartExecutionOnUpdate: false
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${CodePipelineRole}"
       Stages:
-        - Name: Source
+        - Name: Source-from-GitHub
           Actions:
             - Name: SourceAction
               ActionTypeId:
@@ -423,26 +444,26 @@ Resources:
               OutputArtifacts:
                 - Name: SiteSource
               RunOrder: 1
-        - Name: InvokeGenerator
+        - Name: Build-Static-Files
           Actions:
-            - Name: InvokeAction
+            - Name: Gatsby-Build
               InputArtifacts:
                 - Name: SiteSource
               ActionTypeId:
-                Category: Invoke
+                Category: Build
                 Owner: AWS
-                Provider: Lambda
                 Version: 1
+                Provider: CodeBuild
               Configuration:
-                FunctionName: !Ref GeneratorLambdaFunction
+                ProjectName: !Ref GatsbyCodeBuild
               OutputArtifacts:
-                - Name: SiteContent
+                - Name: StaticFiles
               RunOrder: 1
-        - Name: InvokeSync
+        - Name: Deploy-Site
           Actions:
-            - Name: InvokeAction
+            - Name: InvokeSyncFunction
               InputArtifacts:
-                - Name: SiteContent
+                - Name: StaticFiles
               ActionTypeId:
                 Category: Invoke
                 Owner: AWS
@@ -533,13 +554,9 @@ Metadata:
         Parameters:
           - NotificationEmail
       - Label:
-          default: AWS Lambda Function (static site generator)
-        Parameters:
-          - LambdaBucket
-          - GeneratorLambdaFunctionS3Key
-      - Label:
           default: AWS Lambda Function (Sync to S3)
         Parameters:
+          - LambdaBucket
           - SyncLambdaFunctionS3Key
       - Label:
           default: CloudFront CDN

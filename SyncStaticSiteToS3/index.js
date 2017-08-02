@@ -1,5 +1,5 @@
 'use strict'
 
-exports.handler = function() {
-  console.log('foo');
+exports.handler = function(event, context, callback) {
+  console.log(event.inputArtifacts);
 }
