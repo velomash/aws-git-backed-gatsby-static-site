@@ -70,6 +70,7 @@ Parameters:
 
   GitHubToken:
     Description: "The OAuth token which gives access to your repository."
+    NoEcho: true
     Type: String
 
   PreExistingHostedZoneDomain:
