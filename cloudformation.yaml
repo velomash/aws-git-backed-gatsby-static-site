@@ -123,7 +123,7 @@ Resources:
       AccessControl: PublicRead
       WebsiteConfiguration:
         IndexDocument: index.html
-        ErrorDocument: error.html
+        ErrorDocument: 404.html
       # logs.example.com/logs/s3/example.com/
       LoggingConfiguration:
         DestinationBucketName: !If [NeedsNewLogsBucket, !Ref LogsBucket, !Ref PreExistingLogsBucket]
@@ -325,8 +325,7 @@ Resources:
                 - npm run build
             post_build:
               commands:
-                - echo $DESTINATION_S3_BUCKET
-                - aws s3 sync "public/" "s3://$DESTINATION_S3_BUCKET" --delete
+                - aws s3 sync "public/" "s3://$DESTINATION_S3_BUCKET" --delete --acl "public-read"
           artifacts:
             base-directory: public
             files:
