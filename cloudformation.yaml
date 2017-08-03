@@ -72,16 +72,6 @@ Parameters:
     Description: "The OAuth token which gives access to your repository."
     Type: String
 
-  LambdaBucket:
-    Type: String
-    Description: "S3 bucket containing the ZIPs of AWS Lambda functions"
-    Default: "lambdas.codepipeline"
-
-  SyncLambdaFunctionS3Key:
-    Type: String
-    Description: "S3 key containing ZIP of AWS Lambda function (sync to S3)"
-    Default: "SyncStaticSiteToS3-latest.zip"
-
   PreExistingHostedZoneDomain:
     Description: "Optional domain name for pre-existing Route 53 hosted zone. Leave empty to have hosted zone created and managed by this stack."
     Type: String
@@ -292,54 +282,6 @@ Resources:
         - Endpoint: !Ref NotificationEmail
           Protocol: email
 
-  # IAM info for AWS Lambda functions
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: "/"
-      Policies:
-        - PolicyName: !Sub "${DomainName}-execution-policy"
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: "logs:*"
-                Resource: "arn:aws:logs:*:*:*"
-              - Effect: Allow
-                Action:
-                  - codepipeline:PutJobSuccessResult
-                  - codepipeline:PutJobFailureResult
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - s3:GetBucketLocation
-                  - s3:ListBucket
-                  - s3:ListBucketMultipartUploads
-                Resource:
-                  - !Join ["", ["arn:aws:s3:::", !If [NeedsNewSiteBucket, !Ref SiteBucket, !Ref PreExistingSiteBucket]]]
-                  - !Join ["", ["arn:aws:s3:::", !If [NeedsNewCodePipelineBucket, !Ref CodePipelineBucket, !Ref PreExistingCodePipelineBucket]]]
-              - Effect: Allow
-                Action:
-                  - s3:AbortMultipartUpload
-                  - s3:DeleteObject
-                  - s3:GetObject
-                  - s3:GetObjectAcl
-                  - s3:ListMultipartUploadParts
-                  - s3:PutObject
-                  - s3:PutObjectAcl
-                Resource:
-                  - !Join ["", ["arn:aws:s3:::", !If [NeedsNewSiteBucket, !Ref SiteBucket, !Ref PreExistingSiteBucket], "/*"]]
-                  - !Join ["", ["arn:aws:s3:::", !If [NeedsNewCodePipelineBucket, !Ref CodePipelineBucket, !Ref PreExistingCodePipelineBucket], "/*"]]
-
   GatsbyCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -362,7 +304,10 @@ Resources:
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/nodejs:6.3.1
         Type: LINUX_CONTAINER
-      Name: !Sub ${AWS::StackName}GatsbyCodeBuild
+        EnvironmentVariables:
+          - Name: DESTINATION_S3_BUCKET
+            Value: !Ref DomainName
+      Name: !Sub "${AWS::StackName}GatsbyCodeBuild"
       ServiceRole: !Ref GatsbyCodeBuildRole
       Source:
         Type: CODEPIPELINE
@@ -371,32 +316,21 @@ Resources:
           phases:
             install:
               commands:
-                - npm install -g gatsby
+                - npm install -g gatsby --quiet
             pre_build:
               commands:
-                - npm install
+                - npm install --quiet
             build:
               commands:
                 - npm run build
+            post_build:
+              commands:
+                - echo $DESTINATION_S3_BUCKET
+                - aws s3 sync "public/" "s3://$DESTINATION_S3_BUCKET" --delete
           artifacts:
             base-directory: public
             files:
               - "**/*"
-
-  SyncLambdaFunction:
-    Type: "AWS::Lambda::Function"
-    Properties:
-      Description:  !Sub "Sync static files created by the CodeBuild step to ${DomainName} S3 bucket"
-      Role: !GetAtt LambdaExecutionRole.Arn
-      MemorySize: 1536
-      Timeout: 300
-      Runtime: nodejs6.10
-      Handler: index.handler
-      Variables:
-        DestinationS3Bucket: !Ref DomainName
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: !Ref SyncLambdaFunctionS3Key
 
   # IAM info for CodePipeline
   CodePipelineRole:
@@ -449,7 +383,7 @@ Resources:
               OutputArtifacts:
                 - Name: SiteSource
               RunOrder: 1
-        - Name: Build-Static-Files
+        - Name: Build-and-Deploy
           Actions:
             - Name: Gatsby-Build
               InputArtifacts:
@@ -463,19 +397,6 @@ Resources:
                 ProjectName: !Ref GatsbyCodeBuild
               OutputArtifacts:
                 - Name: StaticFiles
-              RunOrder: 1
-        - Name: Deploy-Site
-          Actions:
-            - Name: InvokeSyncFunction
-              InputArtifacts:
-                - Name: StaticFiles
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: 1
-              Configuration:
-                FunctionName: !Ref SyncLambdaFunction
               RunOrder: 1
 
 Mappings:
@@ -559,11 +480,6 @@ Metadata:
         Parameters:
           - NotificationEmail
       - Label:
-          default: AWS Lambda Function (Sync to S3)
-        Parameters:
-          - LambdaBucket
-          - SyncLambdaFunctionS3Key
-      - Label:
           default: CloudFront CDN
         Parameters:
           - PriceClass
@@ -572,7 +488,6 @@ Metadata:
       - Label:
           default: PreExisting Resources To Use (Leave empty for stack to create and manage)
         Parameters:
-          - PreExistingGitRepository
           - PreExistingHostedZoneDomain
           - PreExistingSiteBucket
           - PreExistingRedirectBucket

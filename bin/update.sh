@@ -1,12 +1,5 @@
 #!/bin/bash
 
-echo "Building and uploading lambda functions..."
-
-SYNC_STATIC_SITE_TO_S3_VERSION=$(./SyncStaticSiteToS3/build.sh)
-
-echo "Success!"
-echo ""
-
 aws cloudformation update-stack \
   --stack-name=$STACK_NAME \
   --template-body=file://cloudformation.yaml \
@@ -17,9 +10,7 @@ aws cloudformation update-stack \
     ParameterKey=GitHubOwner,ParameterValue=$GITHUB_OWNER \
     ParameterKey=GitHubRepo,ParameterValue=$GITHUB_REPO \
     ParameterKey=GitHubBranch,ParameterValue=$GITHUB_BRANCH \
-    ParameterKey=GitHubToken,ParameterValue=$GITHUB_TOKEN \
-    ParameterKey=LambdaBucket,ParameterValue=lambdas.$DOMAIN_NAME \
-    ParameterKey=SyncLambdaFunctionS3Key,ParameterValue=SyncStaticSiteToS3-${SYNC_STATIC_SITE_TO_S3_VERSION-latest}.zip
+    ParameterKey=GitHubToken,ParameterValue=$GITHUB_TOKEN
 
 echo "Updating the $STACK_NAME stack..."
 
