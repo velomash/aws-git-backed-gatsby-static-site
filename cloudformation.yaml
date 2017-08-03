@@ -386,12 +386,14 @@ Resources:
   SyncLambdaFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      Description:  !Sub "Copy Git branch contents to S3 bucket for ${DomainName}"
+      Description:  !Sub "Sync static files created by the CodeBuild step to ${DomainName} S3 bucket"
       Role: !GetAtt LambdaExecutionRole.Arn
       MemorySize: 1536
       Timeout: 300
       Runtime: nodejs6.10
       Handler: index.handler
+      Variables:
+        DestinationS3Bucket: !Ref DomainName
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: !Ref SyncLambdaFunctionS3Key
