@@ -38,18 +38,34 @@ Benefits of this architecture include:
 
 ## Installation
 
-Installing and using this AWS architecture is incredibly easy. 
+Installing and using the AWS architecture is incredibly easy. Before
+you begin make sure you have a github repository that contains a
+Gatsby project. Then follow these instructions:
 
-When the stack starts up, two email messages will be sent to the
-address associated with your domain's registration and one will be
-sent to your AWS account address. Open each email and approve these:
+  1. Clone this repo.
 
- - ACM Certificate (2)
- - SNS topic subscription
+  2. Make a copy of the example-config.env called config.env and fill
+  each item in the config with your own information. You'll need a github
+  OAuth token. If you don't have one, make one by [following the github docs](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
 
-The CloudFormation stack will be stuck until the ACM certificates are
-approved. The CloudFront distributions are created afterwards and can
-take over 30 minutes to complete.
+  3. Run the create command: `npm run create`
+
+  4. When the stack starts up, two email messages will be sent to the
+  address associated with your domain's registration and one will be
+  sent to your AWS account address. Open each email and approve these:
+   - ACM Certificate (2)
+   - SNS topic subscription
+
+  The CloudFormation stack will be stuck until the ACM certificates are
+  approved. The CloudFront distributions are created afterwards and can
+  take over 30 minutes to complete.
+
+  5. Open the Route 53 dashboard. Open the newly created hosted zone which
+  will be named based on the domain you entered in the config. Assign the
+  nameservers of your registered domain to those listed in the NS record
+  of your hosted zone.
+
+  6. Enjoy fast, secure, and cheap hosting!!
 
 ### Monthly Cost
 
