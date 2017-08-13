@@ -1,7 +1,7 @@
+# Simple AWS Hosting for Gatsby based Static Sites
+### complete with continuous delivery from Github
 
-# Git-backed static website powered entirely by AWS
-
-![diagram](https://raw.githubusercontent.com/alestic/aws-git-backed-static-website/master/aws-git-backed-static-website-architecture.gif "Architecture dagram: Git-backed static website powerd by AWS")
+![diagram](https://raw.githubusercontent.com/velomash/aws-git-backed-gatsby-static-site/master/architecture.png "Architecture dagram: Git-backed static website powerd by AWS")
 
 _Add An AWS Launcher Button_
 
