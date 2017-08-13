@@ -189,10 +189,6 @@ Leaves behind Route 53 hosted zone, S3 buckets, and Git repository.
 That last command will fail, so go use the web console to delete the
 versioned codepipeline bucket.
 
-### Delete CodeCommit Git repository
+### Monthly Cost
 
-    # WARNING! DESTROYS CONTENT!
-
-    #aws codecommit delete-repository \
-      --region "$region" \
-      --repository-name "$domain"
+Monthly cost of this template with 100k monthly visitors is less than $1k.
