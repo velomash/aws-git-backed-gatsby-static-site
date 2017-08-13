@@ -3,7 +3,7 @@
 
 ![diagram](https://raw.githubusercontent.com/velomash/aws-git-backed-gatsby-static-site/master/architecture.png "Architecture dagram: Git-backed static website powerd by AWS")
 
-[![AWS Launcher Button](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=gatsby_static_site&templateURL=https://raw.githubusercontent.com/velomash/aws-git-backed-gatsby-static-site/master/cloudformation.yaml)
+<!--[![AWS Launcher Button](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=gatsby_static_site&templateURL=https://raw.githubusercontent.com/velomash/aws-git-backed-gatsby-static-site/master/cloudformation.yaml)-->
 
 ## Overview
 
