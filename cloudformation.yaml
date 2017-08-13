@@ -3,17 +3,14 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Description: |
   Static web site stack including:
-  * CodeCommit Git repository
   * S3 bucket for web site content
   * Redirect from "www." to base domain
   * Access logs written to logs bucket
   * ACM Certificate for SSL
   * CloudFront distributions for website https access
   * Route 53 hosted zone with DNS entries
-  * CodePipeline (source CodeCommit, invoke Lambda functions)
+  * CodePipeline (sourced from GitHub)
   * S3 bucket for CodePipeline artifacts
-  * AWS Lambda function(s) to generate static website from Git contents
-  * AWS Lambda function to copy generated website to website S3 bucket
   * SNS topic for CodeCommit Git change notifications
   * Email address subscribed to SNS notification topic
 
@@ -475,6 +472,10 @@ Metadata:
           default: Website and Git repository
         Parameters:
           - DomainName
+          - GitHubOwner
+          - GitHubRepo
+          - GitHubBranch
+          - GitHubToken
       - Label:
           default: Git Activity
         Parameters:
