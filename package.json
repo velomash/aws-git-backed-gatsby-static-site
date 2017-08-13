@@ -2,7 +2,7 @@
   "name": "aws-git-backed-gatsby-static-site",
   "version": "0.8.2",
   "author": "Adam Trimble",
-  "description": "An easy cloudformation template designed to launch gatsby static sites cheaply and securely",
+  "description": "Simple AWS Hosting for Gatsby based Static Sites",
   "main": "index.js",
   "scripts": {
     "create-stack": "export $(cat config.env | xargs) && ./bin/create.sh",
