@@ -52,11 +52,8 @@ Gatsby project. Then follow these instructions:
 
   4. When the stack starts up, two email messages will be sent to the
   address associated with your domain's registration and one will be
-  sent to your AWS account address. Open each email and approve these:
-   - ACM Certificate (2)
-   - SNS topic subscription
-
-  The CloudFormation stack will be stuck until the ACM certificates are
+  sent to your AWS account address. Open and approve each email. The
+  CloudFormation stack will be stuck until the ACM certificates are
   approved. The CloudFront distributions are created afterwards and can
   take over 30 minutes to complete.
 
@@ -66,7 +63,3 @@ Gatsby project. Then follow these instructions:
   of your hosted zone.
 
   6. Enjoy fast, secure, and cheap hosting!!
-
-### Monthly Cost
-
-Monthly cost of this template with 100k monthly visitors is less than $1.
