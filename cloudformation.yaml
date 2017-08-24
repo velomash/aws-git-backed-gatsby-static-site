@@ -312,15 +312,12 @@ Resources:
         BuildSpec: |
           version: 0.2
           phases:
-            install:
-              commands:
-                - npm install -g gatsby --quiet
             pre_build:
               commands:
                 - npm install --quiet
             build:
               commands:
-                - npm run build
+                - ./node_modules/gatsby/dist/gatsby-cli.js build
             post_build:
               commands:
                 - aws s3 sync "public/" "s3://$DESTINATION_S3_BUCKET" --delete --acl "public-read"
