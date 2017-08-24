@@ -312,6 +312,10 @@ Resources:
         BuildSpec: |
           version: 0.2
           phases:
+            install:
+              commands:
+                - npm install -g npm
+                - npm install -g gatsby --quiet
             pre_build:
               commands:
                 - npm install --quiet
