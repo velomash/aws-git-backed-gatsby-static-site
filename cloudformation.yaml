@@ -314,14 +314,14 @@ Resources:
           phases:
             install:
               commands:
-                - npm install -g npm
-                - npm install -g gatsby --quiet
+                - touch .npmignore
+                - npm install -g gatsby
             pre_build:
               commands:
-                - npm install --quiet
+                - npm install
             build:
               commands:
-                - ./node_modules/gatsby/dist/gatsby-cli.js build
+                - npm run build
             post_build:
               commands:
                 - aws s3 sync "public/" "s3://$DESTINATION_S3_BUCKET" --delete --acl "public-read"
