@@ -21,8 +21,7 @@ you can serve your static files safely, securely and mega fast.
 
 Benefits of this architecture include:
 
- - Trivial to launch - Can use aws-cli or AWS console (click "launch"
-   above)
+ - Trivial to launch - Can use aws-cli or AWS console
 
  - Maintenance-free - Amazon is responsible for managing all the
    services used.
